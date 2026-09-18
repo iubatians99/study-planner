@@ -1,6 +1,6 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import { initializeFirestore, persistentLocalCache, collection, getDocs, addDoc, updateDoc, deleteDoc, setDoc, doc, getDoc, onSnapshot, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-    import { getAuth, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, updateProfile, updatePassword, reauthenticateWithCredential, EmailAuthProvider } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import { getAuth, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, updateProfile, updatePassword, reauthenticateWithCredential, EmailAuthProvider, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
     // ───────────────────────────
     // FIREBASE CONFIG
@@ -275,6 +275,51 @@
       document.getElementById('guestSignUpBtn').addEventListener('click', () => {
         exitGuestMode();
         tabSignup.click();
+      });
+
+      // ─── Forgot password ───
+      const forgotBtn = document.getElementById('forgotPasswordBtn');
+      const forgotPanel = document.getElementById('forgotPasswordPanel');
+      const resetEmailInput = document.getElementById('resetEmail');
+      const sendResetBtn = document.getElementById('sendResetBtn');
+      const resetMsg = document.getElementById('resetMsg');
+      const backToLoginBtn = document.getElementById('backToLoginBtn');
+
+      const loginFields = ['tabLogin', 'tabSignup', 'loginEmail', 'loginPassword', 'loginBtn', 'loginError', 'forgotPasswordBtn', 'guestViewBtn']
+        .map(id => document.getElementById(id));
+
+      forgotBtn.addEventListener('click', () => {
+        resetEmailInput.value = document.getElementById('loginEmail').value.trim();
+        resetMsg.textContent = '';
+        loginFields.forEach(el => el.style.display = 'none');
+        forgotPanel.style.display = 'block';
+      });
+
+      backToLoginBtn.addEventListener('click', () => {
+        forgotPanel.style.display = 'none';
+        loginFields.forEach(el => el.style.display = '');
+      });
+
+      sendResetBtn.addEventListener('click', async () => {
+        const email = resetEmailInput.value.trim();
+        resetMsg.textContent = '';
+
+        if (!email) {
+          resetMsg.textContent = 'Please enter your email address.';
+          return;
+        }
+
+        sendResetBtn.disabled = true;
+        try {
+          await sendPasswordResetEmail(auth, email);
+          resetMsg.style.color = 'var(--moss-dark)';
+          resetMsg.textContent = 'Reset link sent — check your inbox (and spam folder).';
+        } catch (error) {
+          resetMsg.style.color = '';
+          resetMsg.textContent = `Could not send reset link: ${error.code || error.message}`;
+        } finally {
+          sendResetBtn.disabled = false;
+        }
       });
     }
 
