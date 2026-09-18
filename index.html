@@ -77,6 +77,16 @@
       <input id="loginPassword" class="login-input" type="password" placeholder="Password" autocomplete="current-password">
       <button id="loginBtn" class="btn btn-primary" style="width:100%;">Log In</button>
       <p id="loginError" class="login-error"></p>
+      <button id="forgotPasswordBtn" class="login-guest-link" type="button">Forgot password?</button>
+
+      <div id="forgotPasswordPanel" style="display:none;">
+        <p class="login-sub" style="margin-top:14px;">Enter your account email and we'll send you a link to reset your password.</p>
+        <input id="resetEmail" class="login-input" type="email" placeholder="Email" autocomplete="email">
+        <button id="sendResetBtn" class="btn btn-primary" style="width:100%;">Send Reset Link</button>
+        <p id="resetMsg" class="login-error"></p>
+        <button id="backToLoginBtn" class="login-guest-link" type="button">← Back to Log In</button>
+      </div>
+
       <button id="guestViewBtn" class="login-guest-link" type="button">👀 Just want to look around? View without an account</button>
     </div>
   </div>
