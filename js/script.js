@@ -1,6 +1,6 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import { initializeFirestore, persistentLocalCache, collection, getDocs, addDoc, updateDoc, deleteDoc, setDoc, doc, getDoc, onSnapshot, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-    import { getAuth, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, updateProfile, updatePassword, reauthenticateWithCredential, EmailAuthProvider } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import { getAuth, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, updateProfile, updatePassword, reauthenticateWithCredential, EmailAuthProvider, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
     // ───────────────────────────
     // FIREBASE CONFIG
@@ -276,6 +276,51 @@
         exitGuestMode();
         tabSignup.click();
       });
+
+      // ─── Forgot password ───
+      const forgotBtn = document.getElementById('forgotPasswordBtn');
+      const forgotPanel = document.getElementById('forgotPasswordPanel');
+      const resetEmailInput = document.getElementById('resetEmail');
+      const sendResetBtn = document.getElementById('sendResetBtn');
+      const resetMsg = document.getElementById('resetMsg');
+      const backToLoginBtn = document.getElementById('backToLoginBtn');
+
+      const loginFields = ['tabLogin', 'tabSignup', 'loginEmail', 'loginPassword', 'loginBtn', 'loginError', 'forgotPasswordBtn', 'guestViewBtn']
+        .map(id => document.getElementById(id));
+
+      forgotBtn.addEventListener('click', () => {
+        resetEmailInput.value = document.getElementById('loginEmail').value.trim();
+        resetMsg.textContent = '';
+        loginFields.forEach(el => el.style.display = 'none');
+        forgotPanel.style.display = 'block';
+      });
+
+      backToLoginBtn.addEventListener('click', () => {
+        forgotPanel.style.display = 'none';
+        loginFields.forEach(el => el.style.display = '');
+      });
+
+      sendResetBtn.addEventListener('click', async () => {
+        const email = resetEmailInput.value.trim();
+        resetMsg.textContent = '';
+
+        if (!email) {
+          resetMsg.textContent = 'Please enter your email address.';
+          return;
+        }
+
+        sendResetBtn.disabled = true;
+        try {
+          await sendPasswordResetEmail(auth, email);
+          resetMsg.style.color = 'var(--moss-dark)';
+          resetMsg.textContent = 'Reset link sent — check your inbox (and spam folder).';
+        } catch (error) {
+          resetMsg.style.color = '';
+          resetMsg.textContent = `Could not send reset link: ${error.code || error.message}`;
+        } finally {
+          sendResetBtn.disabled = false;
+        }
+      });
     }
 
     // ───────────────────────────
@@ -330,7 +375,7 @@
       // Reset the view back to Tracker so a subsequent real login doesn't
       // land on whatever section the guest happened to be browsing.
       document.querySelectorAll('[data-view]').forEach(b => b.classList.remove('active'));
-      document.querySelector('[data-view="tracker"]').classList.add('active');
+      document.querySelectorAll('[data-view="tracker"]').forEach(b => b.classList.add('active'));
       switchView('tracker');
     }
 
@@ -426,6 +471,14 @@
       // Data & Backup actions
       document.getElementById('exportJsonBtn').addEventListener('click', exportJSONBackup);
       document.getElementById('exportCsvBtn').addEventListener('click', exportTasksCSV);
+      document.getElementById('importCsvBtn').addEventListener('click', () => {
+        document.getElementById('importCsvInput').click();
+      });
+      document.getElementById('importCsvInput').addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) importTasksCSV(file);
+        e.target.value = ''; // allow re-selecting the same file next time
+      });
       document.getElementById('resetAllBtn').addEventListener('click', resetAllData);
 
       // Daily Tracker actions
@@ -1262,6 +1315,94 @@
       showToast('CSV downloaded.', 'success');
     }
 
+    // Small RFC-4180-ish CSV parser — handles quoted fields, escaped ""
+    // quotes inside them, and commas/newlines within quotes. Good enough
+    // for a file this app itself exports (or a spreadsheet "Save as CSV").
+    function parseCSV(text) {
+      const rows = [];
+      let row = [], field = '', inQuotes = false;
+      for (let i = 0; i < text.length; i++) {
+        const c = text[i];
+        if (inQuotes) {
+          if (c === '"') {
+            if (text[i + 1] === '"') { field += '"'; i++; }
+            else inQuotes = false;
+          } else {
+            field += c;
+          }
+        } else if (c === '"') {
+          inQuotes = true;
+        } else if (c === ',') {
+          row.push(field); field = '';
+        } else if (c === '\n' || c === '\r') {
+          if (c === '\r' && text[i + 1] === '\n') i++;
+          row.push(field); field = '';
+          if (row.some(f => f.trim() !== '')) rows.push(row);
+          row = [];
+        } else {
+          field += c;
+        }
+      }
+      if (field !== '' || row.length) { row.push(field); rows.push(row); }
+      return rows;
+    }
+
+    function importTasksCSV(file) {
+      const msgEl = document.getElementById('pfTaskMsg');
+      const reader = new FileReader();
+      reader.onerror = () => showToast('Could not read that file.', 'error');
+      reader.onload = async () => {
+        let rows = parseCSV(String(reader.result));
+        if (!rows.length) {
+          showToast('That CSV looks empty.', 'error');
+          return;
+        }
+        // Drop a header row like "Week,Category,Target Days,Description".
+        if (/week/i.test(rows[0][0] || '') && /categor/i.test(rows[0][1] || '')) {
+          rows = rows.slice(1);
+        }
+
+        const newTasks = rows
+          .filter(r => (r[0] || '').trim())
+          .map(r => ({
+            name: (r[0] || '').trim(),
+            category: (r[1] || '').trim() || 'BAU',
+            days: Math.max(1, parseInt(r[2], 10) || 1),
+            desc: (r[3] || '').trim(),
+            completed: 0,
+            createdAt: new Date()
+          }));
+
+        if (!newTasks.length) {
+          showToast('No valid rows found in that CSV.', 'error');
+          return;
+        }
+
+        if (!confirm(`Import ${newTasks.length} task(s) into the shared plan? This adds to the existing tasks — it doesn't replace them.`)) {
+          return;
+        }
+
+        if (msgEl) msgEl.textContent = `Importing ${newTasks.length} task(s)…`;
+        try {
+          // Firestore batches cap at 500 writes, so chunk defensively.
+          for (let i = 0; i < newTasks.length; i += 450) {
+            const batch = writeBatch(db);
+            newTasks.slice(i, i + 450).forEach(t => {
+              batch.set(doc(collection(db, "tasks")), t);
+            });
+            await batch.commit();
+          }
+          if (msgEl) msgEl.textContent = '';
+          showToast(`Imported ${newTasks.length} task(s).`, 'success');
+        } catch (error) {
+          console.error('CSV import failed:', error);
+          if (msgEl) msgEl.textContent = '';
+          showToast(`Import failed: ${error.message}`, 'error');
+        }
+      };
+      reader.readAsText(file);
+    }
+
     async function resetAllData() {
       const msgEl = document.getElementById('pfDataMsg');
       const taskCount = appState.plan.categories.length;
@@ -1967,4 +2108,14 @@
           </div>
         `;
       }).join('');
+    }
+
+    // ─── PWA: register the app-shell service worker ───
+    // Only caches this app's own static files (see sw.js) — never
+    // Firebase/Firestore requests — so this is safe to fail silently if the
+    // browser doesn't support it or the register call errors out.
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js').catch(() => {});
+      });
     }
