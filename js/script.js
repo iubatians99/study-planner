@@ -1214,6 +1214,16 @@
           `).join('')
         : '<div class="inline-list-row text-muted">No tasks yet.</div>';
 
+      // Keep the category suggestion list current: the 4 defaults plus any
+      // custom categories already in use, so typing stays a quick pick
+      // rather than retyping the same custom name from scratch each time.
+      const categoryListEl = document.getElementById('taskCategoryList');
+      if (categoryListEl) {
+        const used = [...new Set(appState.plan.categories.map(t => t.category).filter(Boolean))];
+        const allCats = [...new Set([...CATEGORY_ORDER, ...used])];
+        categoryListEl.innerHTML = allCats.map(c => `<option value="${escapeHTML(c)}">`).join('');
+      }
+
       const eventListEl = document.getElementById('pfEventList');
       const todayStr = new Date().toISOString().slice(0, 10);
       const orderedEvents = [...appState.events].sort((a, b) => new Date(eventDateRange(a).start) - new Date(eventDateRange(b).start));
@@ -1563,7 +1573,7 @@
     window.addTaskInline = async function() {
       const msgEl = document.getElementById('pfTaskMsg');
       const name = document.getElementById('pfTaskName').value.trim();
-      const category = document.getElementById('pfTaskCategory').value;
+      const category = document.getElementById('pfTaskCategory').value.trim() || 'BAU';
       const days = parseInt(document.getElementById('pfTaskDays').value, 10);
       const desc = document.getElementById('pfTaskDesc').value.trim();
       msgEl.textContent = '';

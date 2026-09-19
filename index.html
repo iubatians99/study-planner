@@ -382,12 +382,13 @@
             <p class="text-muted text-sm mb">Add, edit, or remove tasks — changes apply to the shared plan everyone sees.</p>
             <div class="inline-form-grid">
               <input id="pfTaskName" class="login-input" placeholder="Week name, e.g. Week 1">
-              <select id="pfTaskCategory" class="login-input">
-                <option>BAU</option>
-                <option>Agri-Career</option>
-                <option>Agri-Pedia</option>
-                <option>BCS</option>
-              </select>
+              <input id="pfTaskCategory" class="login-input" list="taskCategoryList" placeholder="Category, e.g. BAU" autocomplete="off">
+              <datalist id="taskCategoryList">
+                <option value="BAU">
+                <option value="Agri-Career">
+                <option value="Agri-Pedia">
+                <option value="BCS">
+              </datalist>
               <input id="pfTaskDays" class="login-input" type="number" min="1" placeholder="Days, e.g. 6">
               <input id="pfTaskDesc" class="login-input" placeholder="Target / description">
             </div>
