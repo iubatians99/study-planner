@@ -1,606 +1,87 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
-  <meta http-equiv="X-UA-Compatible" content="ie=edge">
-  <meta http-equiv="X-Content-Type-Options" content="nosniff">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://firestore.googleapis.com">
-  <meta name="description" content="Track your personal progress through the 6th semester study plan — private, per-student checkboxes on a shared task list.">
-  <meta name="theme-color" content="#6b9b5e">
-  <title>Study Planner — Agriculture Students</title>
-
-  <!-- PWA: installable as a home-screen / desktop app -->
-  <link rel="manifest" href="manifest.json">
-  <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
-  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
-  <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Study Plan">
-
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600;700&family=Work+Sans:wght@400;500;600&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
-
-  <!-- Warm up connections to Firebase's domains as early as possible, so the
-       SDK download and first Firestore/Auth requests don't each pay a fresh
-       DNS + TLS handshake cost on top of the actual data transfer. -->
-  <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
-  <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
-  <link rel="preconnect" href="https://identitytoolkit.googleapis.com" crossorigin>
-
-  <link rel="stylesheet" href="css/style.css">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#176b4b">
+<meta name="description" content="Simple 180-day study plan tracker — first 90-day semester segment.">
+<title>Semester 7 — Study Tracker</title>
+<link rel="icon" href="icons/icon-192.png">
+<link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-  <!-- LOGIN / SIGNUP GATE -->
-  <div id="loginGate">
-    <svg class="login-bg-hourglass" viewBox="0 0 300 520" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
-      <defs>
-        <clipPath id="hgTopBulb">
-          <path d="M93,93 L207,93 C207,160 172,198 152,258 L148,258 C128,198 93,160 93,93 Z"/>
-        </clipPath>
-        <clipPath id="hgBottomBulb">
-          <path d="M148,258 L152,258 C172,318 207,356 207,427 L93,427 C93,356 128,318 148,258 Z"/>
-        </clipPath>
-      </defs>
-
-      <!-- top wood cap -->
-      <rect class="hg-wood" x="50" y="25" width="200" height="55" rx="8"/>
-      <circle class="hg-pin" cx="68" cy="30" r="4"/>
-      <circle class="hg-pin" cx="98" cy="30" r="4"/>
-      <circle class="hg-pin" cx="202" cy="30" r="4"/>
-      <circle class="hg-pin" cx="232" cy="30" r="4"/>
-
-      <!-- support rods -->
-      <rect class="hg-rod" x="65" y="80" width="6" height="360"/>
-      <rect class="hg-rod" x="95" y="80" width="6" height="360"/>
-      <rect class="hg-rod" x="199" y="80" width="6" height="360"/>
-      <rect class="hg-rod" x="229" y="80" width="6" height="360"/>
-
-      <!-- bottom wood cap -->
-      <rect class="hg-wood" x="50" y="440" width="200" height="55" rx="8"/>
-      <circle class="hg-pin" cx="68" cy="490" r="4"/>
-      <circle class="hg-pin" cx="98" cy="490" r="4"/>
-      <circle class="hg-pin" cx="202" cy="490" r="4"/>
-      <circle class="hg-pin" cx="232" cy="490" r="4"/>
-
-      <!-- sand: draining top pile, clipped to the top bulb -->
-      <rect class="hg-sand hg-sand-top" x="93" width="114" clip-path="url(#hgTopBulb)"/>
-      <!-- sand: accumulating bottom pile, clipped to the bottom bulb -->
-      <rect class="hg-sand hg-sand-bottom" x="93" width="114" clip-path="url(#hgBottomBulb)"/>
-      <!-- falling stream at the neck -->
-      <line class="hg-stream" x1="150" y1="255" x2="150" y2="302"/>
-
-      <!-- glass outline, drawn last so it sits above the sand -->
-      <path class="hg-glass" d="M85,85 L215,85 C215,160 175,200 155,260 C175,320 215,360 215,435 L85,435 C85,360 125,320 145,260 C125,200 85,160 85,85 Z"/>
-    </svg>
-    <div class="login-box">
-      <h2>📚 Study Plan</h2>
-      <p class="login-sub">Project: <span id="projectIdLabel"></span></p>
-      <div class="login-tabs">
-        <button class="login-tab active" id="tabLogin">Log In</button>
-        <button class="login-tab" id="tabSignup">Sign Up</button>
-      </div>
-      <input id="loginEmail" class="login-input" type="email" placeholder="Email" autocomplete="email">
-      <input id="loginPassword" class="login-input" type="password" placeholder="Password" autocomplete="current-password">
-      <button id="loginBtn" class="btn btn-primary" style="width:100%;">Log In</button>
-      <p id="loginError" class="login-error"></p>
-      <button id="forgotPasswordBtn" class="login-guest-link" type="button">Forgot password?</button>
-
-      <div id="forgotPasswordPanel" style="display:none;">
-        <p class="login-sub" style="margin-top:14px;">Enter your account email and we'll send you a link to reset your password.</p>
-        <input id="resetEmail" class="login-input" type="email" placeholder="Email" autocomplete="email">
-        <button id="sendResetBtn" class="btn btn-primary" style="width:100%;">Send Reset Link</button>
-        <p id="resetMsg" class="login-error"></p>
-        <button id="backToLoginBtn" class="login-guest-link" type="button">← Back to Log In</button>
-      </div>
-
-      <button id="guestViewBtn" class="login-guest-link" type="button">👀 Just want to look around? View without an account</button>
-    </div>
+<div id="authGate" class="gate">
+  <div class="auth-card">
+    <div class="brand-mark">✓</div>
+    <h1>Semester 7</h1>
+    <p class="muted">180-day plan · first 90 days</p>
+    <div class="tabs"><button id="loginTab" class="tab active">Log in</button><button id="signupTab" class="tab">Create account</button></div>
+    <input id="email" type="email" placeholder="Email" autocomplete="email">
+    <input id="password" type="password" placeholder="Password" autocomplete="current-password">
+    <button id="authBtn" class="primary wide">Log in</button>
+    <button id="resetBtn" class="link">Forgot password?</button>
+    <p id="authMsg" class="msg"></p>
+    <button id="guestBtn" class="ghost wide">View plan without an account</button>
   </div>
+</div>
 
-  <!-- LOADING OVERLAY — shown between successful login and the first
-       render, so the screen never looks blank/frozen while data loads.
-       If loading fails or times out, switches to an error message with
-       a retry button instead of spinning forever with no feedback. -->
-  <div id="loadOverlay" style="display:none;">
-    <div class="load-spinner" id="loadSpinner"></div>
-    <p id="loadOverlayText">Loading your plan…</p>
-    <button class="btn btn-primary btn-sm" id="loadRetryBtn" style="display:none;">Retry</button>
+<div id="app" hidden>
+<header>
+  <div class="topbar">
+    <div class="brand"><span class="brand-dot">✓</span><div><strong>Semester 7</strong><small>Study Tracker</small></div></div>
+    <div class="top-actions"><span id="syncStatus" class="sync">Ready</span><button id="logoutBtn" class="ghost small">Log out</button></div>
   </div>
-
-  <!-- HEADER -->
-  <header>
-    <div class="header-content">
-      <div class="logo">📚 <span class="logo-text">Study Plan</span></div>
-      <div class="header-right">
-        <div class="nav-links">
-          <button class="nav-btn active" data-view="tracker">Tracker</button>
-          <button class="nav-btn" data-view="dailytracker">Daily Tracker</button>
-          <button class="nav-btn" data-view="calendar">Calendar</button>
-          <button class="nav-btn" data-view="reports">Reports</button>
-          <button class="nav-btn" data-view="profile">My Profile</button>
-        </div>
-        <button class="header-logout" id="logoutBtn">Logout</button>
-      </div>
-    </div>
-  </header>
-
-  <!-- BOTTOM TAB BAR — primary navigation on phones, mirrors the header
-       nav-links above (same data-view targets, so the existing view-switch
-       logic in script.js drives both without any extra JS). Hidden on
-       tablet/desktop, where the header nav-links row is used instead. -->
-  <nav class="bottom-nav" aria-label="Primary">
-    <button class="bottom-nav-btn active" data-view="tracker" type="button">
-      <span class="bottom-nav-icon">📅</span><span class="bottom-nav-label">Tracker</span>
-    </button>
-    <button class="bottom-nav-btn" data-view="dailytracker" type="button">
-      <span class="bottom-nav-icon">🗒️</span><span class="bottom-nav-label">Daily</span>
-    </button>
-    <button class="bottom-nav-btn" data-view="calendar" type="button">
-      <span class="bottom-nav-icon">🗓️</span><span class="bottom-nav-label">Calendar</span>
-    </button>
-    <button class="bottom-nav-btn" data-view="reports" type="button">
-      <span class="bottom-nav-icon">📊</span><span class="bottom-nav-label">Reports</span>
-    </button>
-    <button class="bottom-nav-btn" data-view="profile" type="button">
-      <span class="bottom-nav-icon">👤</span><span class="bottom-nav-label">Profile</span>
-    </button>
+  <nav>
+    <button class="nav active" data-view="today">Today</button>
+    <button class="nav" data-view="plan">90 Days</button>
+    <button class="nav" data-view="monitor">Monitor</button>
+    <button class="nav" data-view="notes">Plan Notes</button>
   </nav>
+</header>
 
-  <!-- MAIN CONTENT -->
-  <div class="container" id="appContent" style="display:none;">
-    <div id="guestBanner" class="guest-banner" style="display:none;">
-      <span>👀 You're viewing as a guest — everything here is read-only.</span>
-      <button id="guestSignUpBtn" class="btn btn-primary btn-sm" type="button">Sign Up to Save Progress</button>
+<main>
+<section id="todayView" class="view">
+  <div class="hero">
+    <div>
+      <span class="eyebrow">DAY <span id="dayNumber">1</span> / 90</span>
+      <h2 id="todayTitle">Today’s tasks</h2>
+      <p id="todayDate" class="hero-sub"></p>
     </div>
-    <div class="main-wrapper">
-      <!-- TRACKER VIEW -->
-      <section id="trackerView" class="tracker-section">
-        <div class="panel-card fade-in">
-          <div class="panel-header">📅 Timeline Progress</div>
-          <div class="panel-body">
-            <div class="panel-body-layout">
-              <div class="panel-stats-col">
-                <div class="panel-row">
-                  <div class="panel-row-label">Days Completed</div>
-                  <div class="panel-row-value" id="daysPassed" style="background:var(--cream-90); color:var(--text-main);">0</div>
-                </div>
-                <div class="panel-row">
-                  <div class="panel-row-label">Days Remaining</div>
-                  <div class="panel-row-value" id="daysLeft">100</div>
-                </div>
-                <div class="panel-row overall">
-                  <div class="panel-row-label">Overall Progress</div>
-                  <div class="panel-row-value" id="overallProgress">0%</div>
-                </div>
-                <div class="panel-starts">Starts: <span id="startDateLabel"></span></div>
-                <div class="panel-starts" style="font-size:1.1rem; padding-top:0;">Ends: <span id="endDateLabel"></span></div>
-                <div class="panel-starts" style="font-size:1.1rem; padding-top:0;">Final Ending: <span id="finalEndDateLabel"></span></div>
-              </div>
-
-              <div class="panel-hourglass-col">
-                <svg class="hourglass-svg" id="hourglassSvg" viewBox="0 0 140 220" xmlns="http://www.w3.org/2000/svg">
-                  <defs>
-                    <linearGradient id="hgWoodGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stop-color="#a5713f"/>
-                      <stop offset="100%" stop-color="#7a4a26"/>
-                    </linearGradient>
-                    <linearGradient id="hgGlassGrad" x1="0" y1="0" x2="1" y2="0">
-                      <stop offset="0%" stop-color="rgba(255,255,255,0.24)"/>
-                      <stop offset="45%" stop-color="rgba(255,255,255,0.04)"/>
-                      <stop offset="100%" stop-color="rgba(255,255,255,0.16)"/>
-                    </linearGradient>
-                    <linearGradient id="hgWaterGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stop-color="#8fd8f7"/>
-                      <stop offset="55%" stop-color="#3fa9e0"/>
-                      <stop offset="100%" stop-color="#1c6fa8"/>
-                    </linearGradient>
-                    <linearGradient id="hgDropGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stop-color="#bfe9ff"/>
-                      <stop offset="100%" stop-color="#2f8fce"/>
-                    </linearGradient>
-                    <!-- rounded, glass-blown bulb silhouette (teardrop curves meeting at
-                         the neck) rather than a hard-edged triangle, to read like real
-                         hourglass glass -->
-                    <clipPath id="topBulbClip">
-                      <path d="M33,25 Q33,78 70,108 Q107,78 107,25 Z"/>
-                    </clipPath>
-                    <clipPath id="bottomBulbClip">
-                      <path d="M33,195 Q33,142 70,112 Q107,142 107,195 Z"/>
-                    </clipPath>
-                    <filter id="hgShadow" x="-40%" y="-40%" width="180%" height="180%">
-                      <feDropShadow dx="0" dy="3" stdDeviation="3" flood-color="#3a2412" flood-opacity="0.28"/>
-                    </filter>
-                  </defs>
-
-                  <g filter="url(#hgShadow)">
-                    <!-- wood caps -->
-                    <rect x="20" y="8" width="100" height="14" rx="5" fill="url(#hgWoodGrad)"/>
-                    <rect x="20" y="198" width="100" height="14" rx="5" fill="url(#hgWoodGrad)"/>
-                    <!-- glass body fill (premium subtle glass sheen), rounded bulbs -->
-                    <path d="M30,22 Q30,82 70,110 Q110,82 110,22 Z M30,198 Q30,138 70,110 Q110,138 110,198 Z" fill="url(#hgGlassGrad)"/>
-                    <!-- top water: height set dynamically by JS to shrink as time passes -->
-                    <rect id="hourglassTopSand" x="33" y="25" width="74" height="0" fill="url(#hgWaterGrad)" clip-path="url(#topBulbClip)"/>
-                    <!-- wavy meniscus on the top water's surface, repositioned by JS each render -->
-                    <path id="hourglassTopWave" class="sand-wave" d="" fill="none" stroke="#e3f7ff" stroke-width="1.3" clip-path="url(#topBulbClip)"/>
-                    <!-- bottom water: height set dynamically by JS to grow as time passes -->
-                    <rect id="hourglassBottomSand" x="33" y="195" width="74" height="0" fill="url(#hgWaterGrad)" clip-path="url(#bottomBulbClip)"/>
-                    <!-- wavy meniscus on the bottom water pile's surface, repositioned by JS each render -->
-                    <path id="hourglassBottomWave" class="sand-wave" d="" fill="none" stroke="#e3f7ff" stroke-width="1.3" clip-path="url(#bottomBulbClip)"/>
-                    <!-- thin continuous thread of water through the neck, so flow never
-                         looks like it pauses between drops -->
-                    <line class="sand-stream" x1="70" y1="96" x2="70" y2="118" stroke="url(#hgWaterGrad)" stroke-width="1.1" stroke-linecap="round" stroke-dasharray="0.2 2.6" opacity="0.55"/>
-                    <!-- the main event: one big, unmistakably-visible falling water drop,
-                         teardrop-shaped, that stretches as it falls and squashes on impact -->
-                    <path class="water-drop" d="M70,95.5 C72.6,98.8 73.6,101.2 73.6,102.8 C73.6,105.1 71.9,106.8 70,106.8 C68.1,106.8 66.4,105.1 66.4,102.8 C66.4,101.2 67.4,98.8 70,95.5 Z" fill="url(#hgDropGrad)"/>
-                    <!-- ripple that pulses out where the drop lands, timed to the drop's impact -->
-                    <ellipse class="water-splash" cx="70" cy="116" rx="4.5" ry="1.4" fill="none" stroke="#bfe9ff" stroke-width="1"/>
-                    <!-- glass outline, drawn last so it sits crisply above sand/stream -->
-                    <path d="M30,22 Q30,82 70,110 Q110,82 110,22 M30,198 Q30,138 70,110 Q110,138 110,198"
-                          fill="none" stroke="#c9a877" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
-                    <!-- soft glass highlight, like a light reflection on curved glass -->
-                    <path d="M40,30 Q36,55 46,80" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="2.5" stroke-linecap="round"/>
-                  </g>
-                </svg>
-                <div class="hourglass-caption" id="hourglassCaption">Time passing…</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="card fade-in">
-          <div class="week-selector">
-            <div class="week-select-wrap">
-              <select class="week-select" id="weekSelector"></select>
-            </div>
-          </div>
-          <div class="week-heading-row">
-            <span class="week-heading" id="weekBigHeading">Week 1</span>
-            <span class="week-heading-sub" id="weekHeadingSub"></span>
-          </div>
-          <div class="week-task-list" id="taskGrid">
-            <div class="empty-state">
-              <div class="empty-state-icon">📋</div>
-              <p>No tasks yet. Add tasks in the Admin panel.</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- CALENDAR VIEW -->
-      <section id="calendarView" class="tracker-section" style="display: none;">
-        <div class="card fade-in">
-          <h2 class="card-title">Academic Calendar</h2>
-          <div class="cal-nav">
-            <button class="btn btn-secondary btn-sm" id="calPrevBtn" type="button" aria-label="Previous month">‹ Prev</button>
-            <div class="cal-nav-center">
-              <div class="cal-month-picker-wrap">
-                <button class="cal-month-label" id="calMonthLabelBtn" type="button" tabindex="-1">
-                  <span id="calendarMonth">July 2026</span> ▾
-                </button>
-                <input type="month" id="calMonthPicker" class="cal-month-picker" aria-label="Jump to a specific month">
-              </div>
-              <button class="cal-today-link" id="calTodayBtn" type="button">Today</button>
-            </div>
-            <button class="btn btn-secondary btn-sm" id="calNextBtn" type="button" aria-label="Next month">Next ›</button>
-          </div>
-          <div class="calendar-grid" id="calendarGrid"></div>
-          <div class="calendar-legend">
-            <div class="legend-item">
-              <div class="legend-dot" style="background: var(--moss);"></div>
-              <span>Today</span>
-            </div>
-            <div class="legend-item">
-              <div class="legend-dot" style="background: var(--terracotta-light); border: 1px solid var(--terracotta);"></div>
-              <span>Exam Date</span>
-            </div>
-            <div class="legend-item">
-              <div class="legend-dot legend-dot-event"></div>
-              <span>Other Event</span>
-            </div>
-            <div class="legend-item">
-              <div class="legend-dot" style="background: var(--cream-95); border: 1px solid var(--border); opacity:0.6;"></div>
-              <span>Past</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="card fade-in">
-          <h2 class="card-title">Upcoming Events</h2>
-          <div class="upcoming-events" id="upcomingEvents">
-            <div class="text-muted text-center">No events scheduled</div>
-          </div>
-        </div>
-      </section>
-
-      <!-- PROFILE VIEW — one unified page: account, plan, tasks, events, data.
-           Every registered user gets the full page; there's no separate admin role. -->
-      <section id="profileView" class="tracker-section" style="display: none;">
-        <div class="card fade-in profile-shell">
-          <div class="profile-shell-head">
-            <h2 class="card-title" style="margin-bottom:2px;">👤 My Profile</h2>
-            <div class="profile-field-static" id="profileEmailDisplay"></div>
-          </div>
-
-          <div class="profile-tabs" id="profileTabs" role="tablist">
-            <button class="profile-tab active" data-ptab="account" type="button">Account</button>
-            <button class="profile-tab" data-ptab="plan" type="button">Plan Duration</button>
-            <button class="profile-tab" data-ptab="tasks" type="button">Tasks</button>
-            <button class="profile-tab" data-ptab="events" type="button">Events</button>
-            <button class="profile-tab" data-ptab="data" type="button">Data &amp; Backup</button>
-          </div>
-
-          <!-- ACCOUNT -->
-          <div class="profile-panel" data-ppanel="account">
-            <div class="profile-field-row">
-              <label for="profileDisplayName">Display Name</label>
-              <input id="profileDisplayName" class="login-input" type="text" placeholder="Your name">
-            </div>
-            <button class="btn btn-primary btn-sm" id="saveNameBtn">Save Name</button>
-            <p class="profile-msg" id="profileNameMsg"></p>
-
-            <hr class="profile-hr">
-
-            <h3 class="card-title text-sm">Change Password</h3>
-            <div class="profile-field-row">
-              <label for="profileCurrentPassword">Current Password</label>
-              <input id="profileCurrentPassword" class="login-input" type="password" autocomplete="current-password">
-            </div>
-            <div class="profile-field-row">
-              <label for="profileNewPassword">New Password</label>
-              <input id="profileNewPassword" class="login-input" type="password" autocomplete="new-password" placeholder="Min 6 characters">
-            </div>
-            <button class="btn btn-primary btn-sm" id="savePasswordBtn">Update Password</button>
-            <p class="profile-msg" id="profilePasswordMsg"></p>
-          </div>
-
-          <!-- PLAN DURATION -->
-          <div class="profile-panel" data-ppanel="plan" style="display:none;">
-            <p class="text-muted text-sm mb">
-              Changes here apply to the shared plan everyone sees. Weeks always run
-              Sunday → Saturday — if you pick a start date that isn't a Sunday, it's
-              automatically rolled back to that week's Sunday when you save.
-            </p>
-            <div class="date-range-group">
-              <div>
-                <label class="mini-label" for="pfPlanStartDate">Starting Date</label>
-                <input id="pfPlanStartDate" class="login-input" type="date">
-              </div>
-              <div>
-                <label class="mini-label" for="pfPlanEndDate">Ending Date</label>
-                <input id="pfPlanEndDate" class="login-input" type="date">
-              </div>
-            </div>
-            <button class="btn btn-primary btn-sm" id="savePlanDatesBtn">Save Duration</button>
-            <p class="profile-msg" id="pfPlanMsg"></p>
-          </div>
-
-          <!-- TASKS -->
-          <div class="profile-panel" data-ppanel="tasks" style="display:none;">
-            <p class="text-muted text-sm mb">Add, edit, or remove tasks — changes apply to the shared plan everyone sees.</p>
-            <div class="inline-form-grid">
-              <input id="pfTaskName" class="login-input" placeholder="Week name, e.g. Week 1">
-              <input id="pfTaskCategory" class="login-input" list="taskCategoryList" placeholder="Category, e.g. BAU" autocomplete="off">
-              <datalist id="taskCategoryList">
-                <option value="BAU">
-                <option value="Agri-Career">
-                <option value="Agri-Pedia">
-                <option value="BCS">
-              </datalist>
-              <input id="pfTaskDays" class="login-input" type="number" min="1" placeholder="Days, e.g. 6">
-              <input id="pfTaskDesc" class="login-input" placeholder="Target / description">
-            </div>
-            <div class="form-actions">
-              <button class="btn btn-primary btn-sm" id="addTaskBtn">+ Add Task</button>
-              <button class="btn btn-secondary btn-sm" id="cancelTaskEditBtn" style="display:none;">Cancel Edit</button>
-            </div>
-            <p class="profile-msg" id="pfTaskMsg"></p>
-            <div id="pfTaskList" class="inline-list-scroll"></div>
-          </div>
-
-          <!-- EVENTS -->
-          <div class="profile-panel" data-ppanel="events" style="display:none;">
-            <p class="text-muted text-sm mb">Add, edit, or remove events — changes apply to the shared plan everyone sees.</p>
-            <div class="inline-form-grid">
-              <input id="pfEventTitle" class="login-input" placeholder="Event title" style="grid-column: 1 / -1;">
-              <div class="date-range-group">
-                <div>
-                  <label class="mini-label" for="pfEventStartDate">Start Date</label>
-                  <input id="pfEventStartDate" class="login-input" type="date">
-                </div>
-                <div>
-                  <label class="mini-label" for="pfEventEndDate">End Date (optional)</label>
-                  <input id="pfEventEndDate" class="login-input" type="date">
-                </div>
-              </div>
-              <select id="pfEventType" class="login-input">
-                <option>Exam</option>
-                <option>Deadline</option>
-                <option>Class</option>
-                <option>Other</option>
-              </select>
-              <div>
-                <label class="mini-label" for="pfEventTime">Time (optional)</label>
-                <input id="pfEventTime" class="login-input" type="time">
-              </div>
-            </div>
-            <div class="form-actions">
-              <button class="btn btn-primary btn-sm" id="addEventBtn">+ Add Event</button>
-              <button class="btn btn-secondary btn-sm" id="cancelEventEditBtn" style="display:none;">Cancel Edit</button>
-            </div>
-            <p class="profile-msg" id="pfEventMsg"></p>
-            <div id="pfEventList" class="inline-list-scroll"></div>
-          </div>
-
-          <!-- DATA & BACKUP -->
-          <div class="profile-panel" data-ppanel="data" style="display:none;">
-            <p class="text-muted text-sm mb">Back up or reset the shared plan. Your own daily progress isn't affected by any of this.</p>
-            <div class="stat-mini-grid" id="dataStats"></div>
-            <div class="form-actions" style="margin-top:14px;">
-              <button class="btn btn-secondary btn-sm" id="exportJsonBtn">📥 Export JSON Backup</button>
-              <button class="btn btn-secondary btn-sm" id="exportCsvBtn">📊 Export Tasks CSV</button>
-              <button class="btn btn-secondary btn-sm" id="importCsvBtn">📤 Import Tasks CSV</button>
-              <input type="file" id="importCsvInput" accept=".csv,text/csv" style="display:none;">
-            </div>
-            <p class="text-muted text-sm" style="margin-top:8px;">CSV columns, in order: <code>Week, Category, Target Days, Description</code> — same format as the export above. The first row (headers) is skipped automatically. Imported tasks are added to the shared plan, not replaced.</p>
-            <hr class="profile-hr">
-            <h3 class="card-title text-sm" style="color:var(--terracotta);">Danger Zone</h3>
-            <p class="text-muted text-sm mb">Permanently deletes every task and event in the shared plan. Export a backup first — this cannot be undone.</p>
-            <button class="btn btn-danger btn-sm" id="resetAllBtn">🔄 Reset All Tasks &amp; Events</button>
-            <p class="profile-msg" id="pfDataMsg"></p>
-          </div>
-        </div>
-      </section>
-
-      <!-- REPORTS VIEW (Category / Weekly Progress) -->
-      <section id="reportsView" class="tracker-section" style="display: none;">
-        <div class="panel-card fade-in">
-          <div class="panel-header">📊 Category Progress</div>
-          <div class="panel-body" id="categoryProgress"></div>
-        </div>
-
-        <div class="panel-card fade-in">
-          <div class="panel-header">📅 Weekly Progress Summary</div>
-          <div class="panel-body weekly-summary-grid" id="weeklySummary"></div>
-        </div>
-
-        <div class="panel-card fade-in">
-          <div class="panel-header">✅ Everyday Completion Summary</div>
-          <div class="panel-body">
-            <p class="text-muted text-sm mb">Every task checked off and every event, grouped by the day it happened — newest first.</p>
-            <div id="dailyCompletionLog" class="daily-log-scroll"></div>
-          </div>
-        </div>
-      </section>
-
-      <!-- DAILY TRACKER VIEW — a simple everyday to-do list: add anything,
-           anytime, with an optional due date/time and a priority you can
-           re-rank with the ▲▼ buttons. Private per account. -->
-      <section id="dailyTrackerView" class="tracker-section" style="display: none;">
-        <div class="card fade-in">
-          <h2 class="card-title">🗒️ Daily Tracker</h2>
-          <p class="text-muted text-sm mb">Add anything you need to get done — set a priority, an optional due date and time, then check it off when it's done.</p>
-          <div class="inline-form-grid">
-            <input id="dtTaskTitle" class="login-input" placeholder="What do you need to do?" style="grid-column: 1 / -1;">
-            <div>
-              <label class="mini-label" for="dtTaskPriority">Priority</label>
-              <input id="dtTaskPriority" class="login-input" type="number" min="1" placeholder="1 = highest">
-            </div>
-            <div>
-              <label class="mini-label" for="dtTaskDueDate">Due Date (optional)</label>
-              <input id="dtTaskDueDate" class="login-input" type="date">
-            </div>
-            <div>
-              <label class="mini-label" for="dtTaskTime">Time (optional)</label>
-              <input id="dtTaskTime" class="login-input" type="time">
-            </div>
-          </div>
-          <div class="form-actions">
-            <button class="btn btn-primary btn-sm" id="dtAddTaskBtn" type="button">+ Add Task</button>
-            <button class="btn btn-secondary btn-sm" id="dtCancelEditBtn" type="button" style="display:none;">Cancel Edit</button>
-          </div>
-          <p class="profile-msg" id="dtTaskMsg"></p>
-        </div>
-
-        <div class="card fade-in">
-          <div class="dt-list-head">
-            <h2 class="card-title" style="margin-bottom:0;">📋 Your Tasks</h2>
-            <label class="dt-filter-toggle">
-              <input type="checkbox" id="dtHideCompleted">
-              Hide completed
-            </label>
-          </div>
-          <div id="dtTaskList" class="dt-task-list"></div>
-        </div>
-      </section>
-
-      <!-- ADMIN VIEW -->
-      <!-- SIDEBAR -->
-      <aside class="sidebar">
-        <div class="stat-card fade-in">
-          <div class="stat-value" id="completionStat">0</div>
-          <div class="stat-label" id="completionStatLabel">Tasks Complete</div>
-        </div>
-
-        <div class="card fade-in today-focus-card" id="todaysFocusCard">
-          <h2 class="card-title text-sm focus-title">🎯 Today's Focus</h2>
-          <div id="todaysFocusMeta" style="font-size: 0.8rem; color: var(--text-mut); margin-bottom: 10px;"></div>
-          <div id="todaysFocus" class="category-list" style="margin-bottom: 0; padding-bottom: 0; border-bottom: none;">
-            Complete what you can today. Every task counts toward your momentum. Start small, build consistency.
-          </div>
-        </div>
-
-        <div class="card fade-in">
-          <h2 class="card-title text-sm">Upcoming in Next 7 Days</h2>
-          <div id="nextWeekEvents" class="upcoming-events">
-            <div class="text-muted text-sm">No events scheduled</div>
-          </div>
-        </div>
-
-        <div class="card fade-in" id="sidebarTasksCard">
-          <h2 class="card-title text-sm">Tasks</h2>
-          <div id="sidebarDtTasks" class="sidebar-task-list">
-            <div class="text-muted text-sm">No tasks yet</div>
-          </div>
-        </div>
-      </aside>
-    </div>
-
-    <footer class="app-footer">
-      <div class="footer-section">
-        <h3 class="footer-heading">📞 Contact</h3>
-        <div class="footer-links">
-          <a class="footer-link footer-link-whatsapp" href="https://wa.me/8801753486065" target="_blank" rel="noopener noreferrer">
-            <span class="footer-link-icon">💬</span> WhatsApp · 01753486065
-          </a>
-          <a class="footer-link" href="https://t.me/+SNWWdMmLgyY5NjQ1" target="_blank" rel="noopener noreferrer">
-            <span class="footer-link-icon">✈️</span> Telegram Group
-          </a>
-        </div>
-      </div>
-
-      <div class="footer-section">
-        <h3 class="footer-heading">📚 Resources</h3>
-        <div class="footer-links">
-          <a class="footer-link footer-link-newspaper" href="https://t.me/+F_FidOLojHhiNmY1" target="_blank" rel="noopener noreferrer">
-            <span class="footer-link-icon">📰</span> Newspaper
-          </a>
-          <a class="footer-link" href="https://krishicompass.eu.org/Faculty/agriculture" target="_blank" rel="noopener noreferrer">
-            <span class="footer-link-icon">🌾</span> Resource 1
-          </a>
-          <a class="footer-link" href="https://foa20.wordpress.com/home-2/classes/" target="_blank" rel="noopener noreferrer">
-            <span class="footer-link-icon">🏫</span> Resource Class
-          </a>
-        </div>
-      </div>
-
-      <div class="footer-section">
-        <h3 class="footer-heading">🤖 AI Assistants</h3>
-        <div class="footer-links footer-ai-grid">
-          <a class="footer-link" href="https://chatgpt.com/" target="_blank" rel="noopener noreferrer">ChatGPT</a>
-          <a class="footer-link" href="https://notebooklm.google.com/" target="_blank" rel="noopener noreferrer">NotebookLM</a>
-          <a class="footer-link" href="https://claude.ai/new" target="_blank" rel="noopener noreferrer">Claude</a>
-          <a class="footer-link" href="https://gemini.google.com/app" target="_blank" rel="noopener noreferrer">Gemini</a>
-        </div>
-      </div>
-    </footer>
+    <div class="hero-progress"><b id="overallPct">0%</b><span>90-day progress</span></div>
   </div>
+  <div id="todayCards" class="task-list"></div>
+  <div id="todayEmpty" class="empty" hidden>No scheduled tasks for today.</div>
+</section>
 
-  <!-- TOASTS — small popup success/error messages, replaces native alert() -->
-  <div id="toastWrap" class="toast-wrap" aria-live="polite"></div>
+<section id="planView" class="view" hidden>
+  <div class="section-head"><div><span class="eyebrow">FIRST SEGMENT</span><h2>90-day plan</h2><p class="muted">20 September 2026 → 18 December 2026</p></div><button id="jumpToday" class="secondary">Jump to today</button></div>
+  <div id="weekGrid" class="week-grid"></div>
+</section>
 
-  <!-- CONGRATS POPUP — celebratory overlay shown whenever an item is checked off as done -->
-  <div id="congratsOverlay" class="congrats-overlay" aria-live="assertive">
-    <div class="congrats-card">
-      <div class="congrats-burst" id="congratsBurst"></div>
-      <div class="congrats-emoji">🎉</div>
-      <div class="congrats-title" id="congratsTitle">Great job!</div>
-      <div class="congrats-sub" id="congratsSub">Task completed</div>
-    </div>
+<section id="monitorView" class="view" hidden>
+  <div class="section-head"><div><span class="eyebrow">MONITORING</span><h2>Your progress</h2><p class="muted">Keep it simple: completed, remaining, streak.</p></div></div>
+  <div class="stats"><div class="stat"><b id="doneCount">0</b><span>Completed</span></div><div class="stat"><b id="remainingCount">0</b><span>Remaining</span></div><div class="stat"><b id="streakCount">0</b><span>Day streak</span></div></div>
+  <div class="card"><div class="bar"><i id="progressBar"></i></div><div class="bar-label"><span>90-day segment</span><b id="barPct">0%</b></div></div>
+  <div class="card"><h3>Areas</h3><div id="areaStats"></div></div>
+  <div class="card"><h3>180-day roadmap</h3><div class="segment"><b>Segment 1</b><span>Days 1–90 · 20 Sep–18 Dec 2026</span><em>Active</em></div><div class="segment muted-box"><b>Segment 2</b><span>Days 91–180 · next semester segment</span><em>Not filled yet</em></div></div>
+</section>
+
+<section id="notesView" class="view" hidden>
+  <div class="section-head"><div><span class="eyebrow">SOURCE PLAN</span><h2>Plan notes</h2><p class="muted">Taken from your 7th-semester resolution. Blank weeks are intentionally left blank rather than invented.</p></div></div>
+  <div class="notes-grid">
+    <article class="card"><h3>Academic · 7th semester</h3><ul>
+      <li>AGR 373 — Entomology</li><li>AGR 374 — Entomology Lab</li><li>ECO 302 — Agricultural Economics</li><li>BOT 205 — Genetics and Plant Breeding</li><li>BOT 206 — Genetics and Plant Breeding Lab</li><li>AGR 301 — Seed Science and Technology</li><li>ART 202 — Career Planning and Development-I</li>
+    </ul><p class="note">Review the first 5 lectures during the vacation.</p></article>
+    <article class="card"><h3>Weekly academic routine</h3><ul><li>Sat + Mon + Wed: 2 hours — AGR 373 + BOT 205</li><li>Sun + Tue + Thu: 2 hours — ECO 302 + AGR 301</li><li>Friday: ART 202 + review all tasks</li></ul></article>
+    <article class="card"><h3>BAU Semester 1 + 2</h3><ul><li>AGRON 1101/1102 — Fundamentals of Agronomy</li><li>SS 1101/1102 — Introductory Soil Science</li><li>FPM 1101/1102 — Farm Mechanics</li><li>ACHEM 1101/1102 — Agroanalytical, Physical & Organic Chemistry</li><li>AE 1103 — Agricultural Economics</li><li>AGRON 1201/1202 — Seed Science & Technology</li><li>HORT 1201/1202 — Fundamentals of Horticulture</li><li>BMB 1201/1202 — Chemistry of Biomolecules</li><li>STAT 1201/1202 — Agricultural Statistics (no resources)</li><li>RS 1201 — Rural Sociology</li></ul></article>
+    <article class="card"><h3>BAU roadmap supplied</h3><ul><li>Week 1: Fundamentals of Agronomy — Days 1–6: 2 videos/day; Day 7: revise.</li><li>Week 2: Agricultural Economics — Days 8–9: 2 videos/day; Days 10–13: 1 video/day + clear concepts; Day 14: revise.</li></ul><p class="note">Weeks 3–13 were blank in the supplied plan, so this tracker does not invent their contents.</p></article>
+    <article class="card"><h3>BCS · daily / weekly</h3><ul><li>Daily: learn new vocabulary.</li><li>Daily: read a Bangla newspaper.</li><li>Daily: read an English newspaper.</li><li>Digest: 1 hour daily — English + Bangla.</li><li>Wednesday: BOOK study.</li><li>Thursday night: solve GK MCQ (Exam Mate).</li><li>Current affairs: once a week.</li></ul></article>
+    <article class="card"><h3>Scientific Officer · 7th semester</h3><ul><li>Agronomy: Chapters 131–178</li><li>Crop botany</li><li>Soil science</li><li>Agricultural chemistry</li><li>Plant pathology</li><li>Agri-Pedia: A–F in this semester</li><li>Hand notes/classes of Mukit sir are listed as a resource in the source plan.</li></ul></article>
   </div>
-
-  <script type="module" src="js/script.js"></script>
+</section>
+</main>
+<div id="toast"></div>
+</div>
+<script type="module" src="js/app.js"></script>
 </body>
 </html>

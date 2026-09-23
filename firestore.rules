@@ -1,41 +1,9 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Every registered (signed-in) user is treated as a co-manager of the
-    // shared plan — there is no separate admin role. Anyone who can log in
-    // can add/edit/delete tasks & events and change the plan's dates. This
-    // is an intentional tradeoff (see README) in exchange for a simpler,
-    // fully self-service planner.
-    function isSignedIn() {
-      return request.auth != null;
+    match /users/{userId}/studyPlan/{segmentId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
     }
-    // Task templates (name/category/days/desc). Readable by anyone so the
-    // public tracker can render the plan; writable by any signed-in user.
-    match /tasks/{taskId} {
-      allow read: if true;
-      allow create, update, delete: if isSignedIn();
-    }
-    match /events/{eventId} {
-      allow read: if true;
-      allow create, update, delete: if isSignedIn();
-    }
-    match /settings/{docId} {
-      allow read: if true;
-      allow write: if isSignedIn();
-    }
-    // Each logged-in user's own checkbox progress on the shared task list.
-    // A user can only ever read or write their own uid's subcollection —
-    // there is no path by which one user can see or change another's data,
-    // and this rule is enforced by Firestore itself, not just the UI.
-    match /users/{userId}/progress/{taskId} {
-      allow read, write: if isSignedIn() && request.auth.uid == userId;
-    }
-    // Each logged-in user's own Daily Tracker doc (self-defined categories,
-    // day-check progress, and study-timer totals). Private to that user.
-    match /dailyTrackers/{userId} {
-      allow read, write: if isSignedIn() && request.auth.uid == userId;
-    }
-    // Default deny — anything not explicitly matched above is blocked.
     match /{document=**} {
       allow read, write: if false;
     }
